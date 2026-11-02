@@ -1,0 +1,51 @@
+classDiagram
+    direction TB
+
+    class Owner {
+        +str name
+        +list~Pet~ pets
+        +__init__(name) None
+        +add_pet(pet) None
+        +get_all_tasks() list~Task~
+    }
+
+    class Pet {
+        <<dataclass>>
+        +str name
+        +str species
+        +list~Task~ tasks
+        +add_task(task) None
+    }
+
+    class Task {
+        <<dataclass>>
+        +str description
+        +date due_date
+        +str time
+        +int duration_minutes
+        +str priority
+        +str frequency = once
+        +bool completed = False
+        +__post_init__() None
+        +update_details(description, due_date, time, duration_minutes, priority, frequency) None
+        +mark_complete() None
+    }
+
+    class Scheduler {
+        +Owner owner
+        +__init__(owner) None
+        +sort_by_time(tasks) list~Task~
+        +filter_tasks(pet_name=None, completed=None) list~Task~
+        +generate_daily_plan(day, available_minutes) list~Task~
+        +detect_conflicts(tasks) list~str~
+        +mark_task_complete(pet, task) None
+    }
+
+    Owner "1" --> "0..*" Pet : manages
+    Pet "1" --> "0..*" Task : stores
+    Scheduler --> "1" Owner : retrieves pets and tasks
+    Scheduler ..> Pet : adds recurring tasks
+    Scheduler ..> Task : organizes and completes
+
+    note for Task "Validates priority, frequency, duration, and HH:MM time. mark_complete changes status only."
+    note for Scheduler "Conflicts match date and start time. Daily and weekly recurrence uses today plus 1 or 7 days."

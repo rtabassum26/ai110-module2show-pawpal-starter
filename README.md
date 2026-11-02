@@ -1,6 +1,6 @@
 # PawPal+ (Module 2 Project)
 
-You are building **PawPal+**, a Streamlit app that helps a pet owner plan care tasks for their pet.
+**PawPal+** is a Streamlit app for organizing care tasks across multiple pets and building daily plans within an available time budget.
 
 ## Scenario
 
@@ -10,41 +10,73 @@ A busy pet owner needs help staying consistent with pet care. They want an assis
 - Consider constraints (time available, priority, owner preferences)
 - Produce a daily plan and explain why it chose that plan
 
-Your job is to design the system first (UML), then implement the logic in Python, then connect it to the Streamlit UI.
+The app separates Python scheduling logic from the Streamlit interface, with Mermaid UML diagrams documenting the class design.
 
-## What you will build
+## Features
 
-Your final app should:
+- Manage multiple pets with a name and species for each pet.
+- Add care tasks with a date, time, duration, priority, and once/daily/weekly frequency.
+- View tasks in chronological order and filter by pet, completion status, or both.
+- Build a daily plan that selects pending tasks by priority within a minute budget, then displays them by time.
+- Show warnings for pending tasks with identical dates and start times, including conflicts across pets.
+- Complete tasks and automatically create the next daily or weekly occurrence.
+- Keep pets and tasks through Streamlit reruns within the active session.
+- Run a standalone CLI demo and a 14-case automated backend test suite.
 
-- Let a user enter basic owner + pet info
-- Let a user add/edit tasks (duration + priority at minimum)
-- Generate a daily schedule/plan based on constraints and priorities
-- Display the plan clearly (and ideally explain the reasoning)
-- Include tests for the most important scheduling behaviors
+## Getting Started
 
-## Getting started
-
-### Setup
+Use Python 3.10 or newer. From the project root, create and activate a virtual environment:
 
 ```bash
 python -m venv .venv
-source .venv/bin/activate  # Windows: .venv\Scripts\activate
-pip install -r requirements.txt
 ```
 
-### Suggested workflow
+Windows PowerShell:
 
-1. Read the scenario carefully and identify requirements and edge cases.
-2. Draft a UML diagram (classes, attributes, methods, relationships).
-3. Convert UML into Python class stubs (no logic yet).
-4. Implement scheduling logic in small increments.
-5. Add tests to verify key behaviors.
-6. Connect your logic to the Streamlit UI in `app.py`.
-7. Refine UML so it matches what you actually built.
+```powershell
+.venv\Scripts\Activate.ps1
+```
+
+macOS/Linux:
+
+```bash
+source .venv/bin/activate
+```
+
+Install the starter repository's dependencies and ensure Streamlit and pytest are available:
+
+```bash
+python -m pip install -r requirements.txt
+python -m pip install streamlit pytest
+```
+
+Launch the browser interface:
+
+```bash
+python -m streamlit run app.py
+```
+
+Run the terminal demo:
+
+```bash
+python main.py
+```
+
+## Project Files
+
+| File | Purpose |
+|------|---------|
+| `pawpal_system.py` | Owner, Pet, Task, and Scheduler backend classes. |
+| `app.py` | Streamlit forms, task tables, filters, completion controls, and schedule display. |
+| `main.py` | Terminal demonstration of the backend behaviors. |
+| `tests/test_pawpal.py` | Automated backend tests. |
+| `diagrams/uml_draft.mmd` | Initial class design. |
+| `diagrams/uml_final.mmd` | Class diagram matching the final backend. |
+| `reflection.md` | Design decisions, tradeoffs, and AI collaboration reflection. |
 
 ## 🖥️ Sample Output
 
-Run the terminal demo with `python main.py`. It creates one owner, two pets, and three care tasks, then displays the daily plan in chronological order.
+The opening schedule from `python main.py` is shown below. The full demo also demonstrates filtering, completion, recurrence, and conflict warnings in the Demo Walkthrough.
 
 ```text
 Today's Schedule
@@ -99,12 +131,70 @@ Run `python main.py` to see sorting, pet/status filtering, daily and weekly recu
 
 ## 📸 Demo Walkthrough
 
-Describe your app in numbered steps so a reader can follow along without watching a video:
+1. **Add your pets.** Enter an owner name. Under **Add a Pet**, add Biscuit as a dog and Luna as a cat. Each pet appears in the pets table.
+2. **Schedule care tasks.** Add a daily Morning walk for Biscuit at 09:00 (30 minutes, high priority), a daily Breakfast for Luna at 08:00 (10 minutes, high priority), and daily Playtime for Luna at 18:00 (20 minutes, medium priority). Use today's date for each task.
+3. **Inspect and filter tasks.** Current Tasks displays the entries by date and time, even when they were added out of order. Select a pet and Pending or Complete to narrow the table; All pets and All restore the full view.
+4. **Build today's plan.** Select today's date, enter 60 available minutes, and click **Generate schedule**. The plan shows Breakfast, Morning walk, and Playtime in time order, with a summary of three tasks totaling 60 minutes. A smaller budget causes tasks that do not fit to be skipped after priority ordering.
+5. **Check a conflict.** Add Biscuit feeding and Luna feeding at 19:00 on the same date. Scheduling Conflicts displays a warning naming the activities and their shared time. The warning remains visible regardless of the task-table filters; it does not automatically reschedule either task.
+6. **Complete a recurring task.** Under Complete a Task, select Morning walk and click **Mark complete**. A success message confirms completion and gives the next occurrence's date and time. The original is Complete and a new Pending task is created for tomorrow. Weekly tasks recur seven days from completion day; one-time tasks do not repeat.
+7. **Inspect the updated plan.** Completed tasks are excluded from generated plans. To see tomorrow's recurring task, choose tomorrow as the Plan date and click Generate schedule again.
 
-1. <!-- Describe this step -->
-2. <!-- Describe this step -->
-3. <!-- Describe this step -->
-4. <!-- Describe this step -->
-5. <!-- Add more steps as needed -->
+### CLI Demonstration
 
-**Screenshot or video** *(optional)*: <!-- Insert a screenshot or link to a demo video here -->
+The terminal demo uses its own sample data, independent of the browser session. Actual output from `python main.py` is shown below; recurrence and conflict dates depend on the day it is run.
+
+```text
+Today's Schedule
+Owner: Alex | Available time: 60 minutes
+
+08:00 | Luna | Breakfast | 10 min | Priority: high | Pending
+09:00 | Biscuit | Morning walk | 30 min | Priority: high | Pending
+18:00 | Luna | Playtime | 20 min | Priority: medium | Pending
+
+Total planned time: 60 minutes
+
+Tasks in insertion order
+09:00 | Morning walk | Pending
+12:00 | Grooming | Complete
+08:00 | Breakfast | Pending
+18:00 | Playtime | Pending
+
+All tasks sorted by time
+08:00 | Breakfast | Pending
+09:00 | Morning walk | Pending
+12:00 | Grooming | Complete
+18:00 | Playtime | Pending
+
+Biscuit's tasks sorted by time
+09:00 | Morning walk | Pending
+12:00 | Grooming | Complete
+
+Pending tasks sorted by time
+08:00 | Breakfast | Pending
+09:00 | Morning walk | Pending
+18:00 | Playtime | Pending
+
+Completed tasks
+12:00 | Grooming | Complete
+
+Biscuit's pending tasks
+09:00 | Morning walk | Pending
+
+Recurring task demo
+Completed: Morning walk | daily | True
+Next occurrence: 2026-11-02 at 09:00 | Pending
+Completed: Weekly brushing | weekly | True
+Next occurrence: 2026-11-08 at 16:00 | Pending
+
+Conflict detection demo
+WARNING: Conflict on 2026-11-01 at 19:00: Biscuit feeding and Biscuit evening walk.
+WARNING: Conflict on 2026-11-01 at 19:00: Biscuit feeding and Luna feeding.
+```
+
+## Current Limitations
+
+- Session state retains data during interactions in the active session. Data is not saved between application runs.
+- Conflict detection checks equal start times, not duration overlaps, and warns rather than resolving conflicts.
+- The time budget is a total number of minutes; it does not model available time slots or travel time.
+- Task editing is available through the backend's `Task.update_details()` method; the current UI supports adding and completing tasks.
+- Daily planning uses dates, task priorities, and a time budget. Additional owner preferences are not implemented.

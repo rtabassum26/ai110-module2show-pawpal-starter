@@ -17,7 +17,7 @@ The Scheduler uses the Owner to access tasks across pets. It is responsible for 
 
 **b. Design changes**
 
-No design changes have been made so far. The class skeleton follows the initial UML, and the scheduling methods are still placeholders. I will update this section if implementation or AI feedback leads to a change, explaining what changed and why.
+The four-class structure stayed the same, but some details became clearer during implementation. Task gained a __post_init__() method to validate duration, priority, frequency, and time format. Recurring task completion stays in Scheduler because it needs access to the pet's task list to add the next occurrence. The recurrence calculation was also changed from the original due date to today plus one or seven days to match the exercise instructions. I updated the final UML to include the implemented methods and relationships.
 
 ---
 
@@ -25,8 +25,7 @@ No design changes have been made so far. The class skeleton follows the initial 
 
 **a. Constraints and priorities**
 
-- What constraints does your scheduler consider (for example: time, priority, preferences)?
-- How did you decide which constraints mattered most?
+My scheduler considers the requested date, completion status, task priority, and the owner's available minutes. It selects pending tasks for that date, considers high-priority tasks first, and skips tasks that do not fit the remaining budget. It then displays the selected tasks in time order. These constraints keep the daily plan manageable while giving important care tasks priority. Additional owner preferences and specific availability windows are not implemented.
 
 **b. Tradeoffs**
 
@@ -40,13 +39,13 @@ I reviewed the detect_conflicts() method with AI. One suggestion was to use dict
 
 **a. How you used AI**
 
-- How did you use AI tools during this project (for example: design brainstorming, debugging, refactoring)?
-- What kinds of prompts or questions were most helpful?
+I used ChatGPT to help create the Mermaid UML, generate class skeletons, implement methods, connect Streamlit forms to the backend, and draft tests and documentation. Generating complete files and reviewing the relationships between classes were especially useful. Focused prompts about sorting, recurrence, and test cases made it easier to work through one requirement at a time.
+
+I continued the work in one conversation rather than using separate chat sessions for each phase. Keeping each request focused on a specific step helped me stay organized, although I mixed up the phase order once and corrected it. Separate sessions could have helped keep algorithm planning and testing discussions apart, but I cannot describe that as something I used here.
 
 **b. Judgment and verification**
 
-- Describe one moment where you did not accept an AI suggestion as-is.
-- How did you evaluate or verify what the AI suggested?
+During the algorithm review, AI suggested using dictionary.setdefault() to shorten conflict detection. The explicit if/else version was kept because it makes the steps easier to understand and already checks tasks in one pass. This review showed me that shorter code does not automatically mean clearer code. I also checked the generated files by running the CLI demo and pytest locally. All tests passed, so I did not need to debug a failing test during this phase.
 
 ---
 
@@ -54,13 +53,11 @@ I reviewed the detect_conflicts() method with AI. One suggestion was to use dict
 
 **a. What you tested**
 
-- What behaviors did you test?
-- Why were these tests important?
+The automated suite has 14 test cases covering task completion and addition, time sorting, pet/status filtering, recurrence, conflict detection, and daily planning. It checks cases such as empty lists, equal times, completed tasks, different dates, repeated completion, and zero or negative budgets. These tests matter because a schedule can look correct in one example while still mishandling a different date or creating duplicate recurring tasks. The CLI demo also shows the main behaviors with readable output.
 
 **b. Confidence**
 
-- How confident are you that your scheduler works correctly?
-- What edge cases would you test next if you had more time?
+I would rate my confidence at 4 out of 5 stars. All 14 automated tests passed, which gives me confidence in the backend behaviors they cover. It does not mean every possible case is tested. Next, I would add fixed-date tests for month and year boundaries, more cases with three or more tasks sharing a time, and saved automated tests for Streamlit interactions.
 
 ---
 
@@ -68,12 +65,12 @@ I reviewed the detect_conflicts() method with AI. One suggestion was to use dict
 
 **a. What went well**
 
-- What part of this project are you most satisfied with?
+I am most satisfied with connecting the backend to the UI. Adding a pet or task now creates a real object, and session state keeps that data during interactions. The filters, conflict warnings, and completion messages make the scheduling logic visible instead of leaving it only in the terminal. Building the CLI demo first also made the backend easier to check before connecting the interface.
 
 **b. What you would improve**
 
-- If you had another iteration, what would you improve or redesign?
+I would add a task-editing form so users could correct a time or resolve a conflict directly in the UI. I would also check duration overlaps and save pets and tasks between application runs. For example, the current conflict check misses a walk from 09:00 to 09:30 overlapping with feeding at 09:15. These improvements would make the app more useful without requiring extra classes at this stage.
 
 **c. Key takeaway**
 
-- What is one important thing you learned about designing systems or working with AI on this project?
+I learned that being the lead architect means staying responsible for the design and checking what the AI produces. AI can generate working code quickly, but I still need to understand where each responsibility belongs, compare the result with the instructions, and verify behavior. In this project, keeping four clear classes, reviewing the recurrence rule, and testing the methods helped keep the work focused. The final code, UML, and documentation also need to agree with each other.
