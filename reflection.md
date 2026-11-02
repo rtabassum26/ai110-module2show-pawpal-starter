@@ -1,6 +1,13 @@
 # PawPal+ Project Reflection
 
 ## 1. System Design
+### Three Core User Actions
+
+1. **Enter owner and pet information:** A user should be able to enter their basic information and add the pets they need to care for.
+
+2. **Add and edit care tasks:** A user should be able to add and update tasks such as feeding, walks, and medications, including how long each task takes and its priority.
+
+3. **Generate and view a daily plan:** A user should be able to generate a clear daily care plan based on their available time, task priorities, and preferences.
 
 **a. Initial design**
 
