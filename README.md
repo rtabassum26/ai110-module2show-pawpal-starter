@@ -59,19 +59,29 @@ Total planned time: 60 minutes
 
 ## 🧪 Testing PawPal+
 
+From the project root, run:
+
 ```bash
-# Run the full test suite:
-pytest
-
-# Run with coverage:
-pytest --cov
+python -m pytest
 ```
 
-Sample test output:
+The suite contains 14 test cases covering task completion and addition, chronological sorting, pet/status filtering, daily and weekly recurrence, duplicate recurrence prevention, same-time conflicts within and across pets, and daily planning within a priority-based time budget. Edge cases include empty lists, equal times, completed tasks, different dates, one-time tasks, and zero or negative time budgets.
 
+Successful test output from the development environment:
+
+```text
+============================= test session starts ==============================
+platform linux -- Python 3.12.14, pytest-9.2.0, pluggy-1.7.0
+rootdir: /workspace/scratch/609a7b568a6c
+plugins: anyio-4.16.0
+collected 14 items
+
+tests/test_pawpal.py ..............                                      [100%]
+
+============================== 14 passed in 0.02s ==============================
 ```
-# Paste your pytest output here
-```
+
+**Confidence Level: ★★★★☆ (4/5).** All 14 tests pass for the covered backend behaviors. This supports confidence in the core scheduling logic, but does not prove every scenario is handled. These tests do not cover Streamlit interactions, duration-overlap detection, or saving data between application runs.
 
 ## 📐 Smarter Scheduling
 

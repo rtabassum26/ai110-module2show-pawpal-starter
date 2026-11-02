@@ -100,3 +100,96 @@ def test_conflicts_ignore_other_dates_times_and_completed_tasks():
     scheduler = Scheduler(Owner("Alex"))
     assert scheduler.detect_conflicts(tasks) == []
     assert scheduler.detect_conflicts([]) == []
+
+
+def test_sort_by_time_orders_tasks_without_changing_input():
+    """Out-of-order times should sort chronologically without mutating input."""
+    tasks = [
+        Task("Evening", date.today(), "18:00", 10, "low"),
+        Task("Morning", date.today(), "8:00", 10, "high"),
+        Task("Noon", date.today(), "12:00", 10, "medium"),
+    ]
+    original = tasks.copy()
+
+    result = Scheduler(Owner("Alex")).sort_by_time(tasks)
+
+    assert [task.time for task in result] == ["08:00", "12:00", "18:00"]
+    assert tasks == original
+    assert result is not tasks
+
+
+def test_sort_empty_list_and_equal_times():
+    """Empty lists work, and tasks with equal times retain their order."""
+    scheduler = Scheduler(Owner("Alex"))
+    first = Task("Feed", date.today(), "08:00", 10, "high")
+    second = Task("Medicine", date.today(), "08:00", 5, "high")
+
+    assert scheduler.sort_by_time([]) == []
+    result = scheduler.sort_by_time([first, second])
+    assert result[0] is first
+    assert result[1] is second
+
+
+def test_filter_by_pet_status_and_both():
+    """Each filter works independently and can be combined."""
+    owner = Owner("Alex")
+    dog, cat = Pet("Biscuit", "dog"), Pet("Luna", "cat")
+    owner.add_pet(dog)
+    owner.add_pet(cat)
+    walk = Task("Walk", date.today(), "09:00", 20, "high")
+    feed = Task("Feed", date.today(), "08:00", 10, "high", completed=True)
+    play = Task("Play", date.today(), "18:00", 15, "low")
+    dog.add_task(walk)
+    dog.add_task(feed)
+    cat.add_task(play)
+    scheduler = Scheduler(owner)
+
+    assert scheduler.filter_tasks(pet_name="Biscuit") == [walk, feed]
+    assert scheduler.filter_tasks(completed=False) == [walk, play]
+    assert scheduler.filter_tasks(completed=True) == [feed]
+    assert scheduler.filter_tasks("Biscuit", False) == [walk]
+    assert scheduler.filter_tasks() == [walk, feed, play]
+    assert scheduler.filter_tasks(pet_name="Unknown") == []
+
+
+def test_pet_with_no_tasks_can_be_filtered():
+    """A pet without care tasks should return an empty list."""
+    owner = Owner("Alex")
+    owner.add_pet(Pet("Biscuit", "dog"))
+    assert Scheduler(owner).filter_tasks("Biscuit") == []
+
+
+def test_daily_plan_prioritizes_and_respects_date_status_and_budget():
+    """Only eligible tasks fitting the remaining budget enter the plan."""
+    owner = Owner("Alex")
+    pet = Pet("Biscuit", "dog")
+    owner.add_pet(pet)
+    today = date.today()
+    tasks = [
+        Task("Low priority", today, "07:00", 10, "low"),
+        Task("Important", today, "09:00", 20, "high"),
+        Task("Too long", today, "10:00", 40, "high"),
+        Task("Medium priority", today, "08:00", 10, "medium"),
+        Task("Tomorrow", today + timedelta(days=1), "06:00", 5, "high"),
+        Task("Finished", today, "06:00", 5, "high", completed=True),
+    ]
+    for task in tasks:
+        pet.add_task(task)
+
+    plan = Scheduler(owner).generate_daily_plan(today, 30)
+
+    assert [task.description for task in plan] == ["Medium priority", "Important"]
+    assert sum(task.duration_minutes for task in plan) == 30
+
+
+def test_daily_plan_handles_empty_zero_and_negative_budget():
+    """Empty schedules and zero budgets return no tasks; negative is invalid."""
+    owner = Owner("Alex")
+    scheduler = Scheduler(owner)
+    assert scheduler.generate_daily_plan(date.today(), 60) == []
+    pet = Pet("Biscuit", "dog")
+    owner.add_pet(pet)
+    pet.add_task(Task("Walk", date.today(), "09:00", 20, "high"))
+    assert scheduler.generate_daily_plan(date.today(), 0) == []
+    with pytest.raises(ValueError, match="Available minutes"):
+        scheduler.generate_daily_plan(date.today(), -1)
