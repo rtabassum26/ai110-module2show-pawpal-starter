@@ -75,14 +75,17 @@ Sample test output:
 
 ## 📐 Smarter Scheduling
 
-> Fill in once you've implemented scheduling logic.
+| Feature | Method(s) | Behavior |
+|---------|-----------|----------|
+| Time sorting | `Scheduler.sort_by_time()` | Returns a new list ordered by zero-padded `HH:MM` time using `sorted()` and a lambda key; leaves the input list unchanged. |
+| Pet/status filtering | `Scheduler.filter_tasks()` | Filters by exact pet name, completion status, or both. `None` leaves that filter unrestricted. |
+| Daily planning | `Scheduler.generate_daily_plan()` | Selects pending tasks for the requested date by high, medium, then low priority, with earlier times breaking ties. Skips tasks that exceed the remaining minute budget and returns the selected tasks chronologically. |
+| Conflict detection | `Scheduler.detect_conflicts()` | Returns warning strings for pending tasks sharing a due date and start time, within one pet's tasks or across pets. Does not check duration overlaps or automatically resolve conflicts. |
+| Recurring tasks | `Scheduler.mark_task_complete()` | Completes the original task and adds a new pending instance to the same pet: daily tasks recur tomorrow, weekly tasks in seven days, calculated from `date.today()` with `timedelta`. One-time tasks do not repeat, and completing the same task again creates no duplicate. |
 
-| Feature | Method(s) | Notes |
-|---------|-----------|-------|
-| Task sorting | | e.g., by priority, duration |
-| Filtering | | e.g., skip tasks if time runs out |
-| Conflict handling | | e.g., overlapping time slots |
-| Recurring tasks | | e.g., daily vs. weekly |
+Use `Scheduler.mark_task_complete(pet, task)` when recurrence is needed. `Task.mark_complete()` only changes the completion status.
+
+Run `python main.py` to see sorting, pet/status filtering, daily and weekly recurrence, and same-time conflict warnings in the terminal.
 
 ## 📸 Demo Walkthrough
 

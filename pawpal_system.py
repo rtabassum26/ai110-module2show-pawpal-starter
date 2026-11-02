@@ -146,7 +146,7 @@ class Scheduler:
         return warnings
 
     def mark_task_complete(self, pet: Pet, task: Task) -> None:
-        """Complete a task and create its next occurrence if recurring."""
+        """Complete a task once and schedule daily/weekly recurrence from today."""
         if not any(owned_pet is pet for owned_pet in self.owner.pets):
             raise ValueError("The pet does not belong to this owner.")
         if not any(pet_task is task for pet_task in pet.tasks):
@@ -158,7 +158,7 @@ class Scheduler:
         if task.frequency in intervals:
             next_task = replace(
                 task,
-                due_date=task.due_date + timedelta(days=intervals[task.frequency]),
+                due_date=date.today() + timedelta(days=intervals[task.frequency]),
                 completed=False,
             )
             pet.add_task(next_task)

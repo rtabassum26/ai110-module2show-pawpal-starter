@@ -30,8 +30,9 @@ No design changes have been made so far. The class skeleton follows the initial 
 
 **b. Tradeoffs**
 
-- Describe one tradeoff your scheduler makes.
-- Why is that tradeoff reasonable for this scenario?
+My scheduler checks for tasks with the same due date and start time, but it does not check whether their durations overlap. For example, it warns about two tasks starting at 09:00, but it would miss a 30-minute walk starting at 09:00 that overlaps with feeding at 09:15. This keeps conflict detection simple and easy to understand while meeting the basic requirement. Checking duration overlaps would be a useful improvement for a more complete scheduler.
+
+I reviewed the detect_conflicts() method with AI. One suggestion was to use dictionary.setdefault() to retrieve or store the first task at each time slot in one step. I kept the explicit if/else version because it makes the warning and storage steps easier for me to follow. The current method already scans the tasks once, with average O(n) time and O(n) extra space, so the shorter version would not improve its overall efficiency.
 
 ---
 
