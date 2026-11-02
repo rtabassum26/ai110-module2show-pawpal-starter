@@ -11,13 +11,13 @@
 
 **a. Initial design**
 
-- Briefly describe your initial UML design.
-- What classes did you include, and what responsibilities did you assign to each?
+My initial design includes four classes: Owner, Pet, Task, and Scheduler. An Owner manages a list of pets and provides access to their tasks. Each Pet stores its name, species, and care tasks. A Task represents an activity such as feeding or walking and stores its description, due date, time, duration, priority, frequency, and completion status. It also provides methods for updating its details and marking it complete.
+
+The Scheduler uses the Owner to access tasks across pets. It is responsible for sorting and filtering tasks, generating a daily plan within the available time, detecting scheduling conflicts, and creating the next occurrence when a recurring task is completed. I kept scheduling decisions in this class so that Pet and Task have simpler responsibilities. Task and Pet use Python dataclasses to reduce repetitive setup code.
 
 **b. Design changes**
 
-- Did your design change during implementation?
-- If yes, describe at least one change and why you made it.
+No design changes have been made so far. The class skeleton follows the initial UML, and the scheduling methods are still placeholders. I will update this section if implementation or AI feedback leads to a change, explaining what changed and why.
 
 ---
 
