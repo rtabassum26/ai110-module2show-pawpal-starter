@@ -1,6 +1,7 @@
 """Streamlit interface for the PawPal+ backend."""
 
-from datetime import date
+from datetime import date, time as datetime_time
+from pathlib import Path
 
 import streamlit as st
 
@@ -11,10 +12,23 @@ st.title("🐾 PawPal+")
 st.write("Add your pets and care tasks, then build a daily plan.")
 
 # Streamlit reruns this script after interactions; retain the same owner object.
+DATA_PATH = Path(__file__).with_name("data.json")
 if "owner" not in st.session_state:
-    st.session_state.owner = Owner("Jordan")
+    try:
+        st.session_state.owner = Owner.load_from_json(DATA_PATH) if DATA_PATH.exists() else Owner("Jordan")
+    except (ValueError, OSError) as exc:
+        st.error(f"Could not restore saved data: {exc}")
+        st.stop()
 owner = st.session_state.owner
 scheduler = Scheduler(owner)
+
+st.caption("Saved data is restored at startup. Click Save data after making changes.")
+if st.button("Save data"):
+    try:
+        owner.save_to_json(DATA_PATH)
+        st.success("Saved pets and tasks to data.json.")
+    except OSError as exc:
+        st.error(f"Could not save data: {exc}")
 
 owner.name = st.text_input("Owner name", value=owner.name)
 
@@ -145,3 +159,22 @@ if "plan_request" in st.session_state:
             st.warning(warning)
     else:
         st.info("No pending tasks fit this date and time budget.")
+
+
+st.subheader("Find Next Available Slot")
+st.caption("Finds a gap across all pets, accounting for task durations. This suggests a time without adding or moving tasks.")
+with st.form("next_slot"):
+    slot_day = st.date_input("Slot date", value=date.today())
+    slot_duration = st.number_input("Required minutes", min_value=1, value=30)
+    window_start = st.time_input("Window start", value=datetime_time(8, 0))
+    window_end = st.time_input("Window end", value=datetime_time(20, 0))
+    find_slot = st.form_submit_button("Find available slot")
+if find_slot:
+    try:
+        slot = scheduler.next_available_slot(slot_day, int(slot_duration), window_start.strftime("%H:%M"), window_end.strftime("%H:%M"))
+        if slot:
+            st.success(f"Next available slot: {slot_day} at {slot} for {slot_duration} minutes.")
+        else:
+            st.warning("No gap long enough in this window. Try another window or date.")
+    except ValueError as exc:
+        st.error(str(exc))

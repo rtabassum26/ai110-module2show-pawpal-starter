@@ -21,7 +21,7 @@ The app separates Python scheduling logic from the Streamlit interface, with Mer
 - Show warnings for pending tasks with identical dates and start times, including conflicts across pets.
 - Complete tasks and automatically create the next daily or weekly occurrence.
 - Keep pets and tasks through Streamlit reruns within the active session.
-- Run a standalone CLI demo and a 14-case automated backend test suite.
+- Run a standalone CLI demo and a 18-case automated backend test suite.
 
 ## Getting Started
 
@@ -97,7 +97,7 @@ From the project root, run:
 python -m pytest
 ```
 
-The suite contains 14 test cases covering task completion and addition, chronological sorting, pet/status filtering, daily and weekly recurrence, duplicate recurrence prevention, same-time conflicts within and across pets, and daily planning within a priority-based time budget. Edge cases include empty lists, equal times, completed tasks, different dates, one-time tasks, and zero or negative time budgets.
+The suite contains 18 test cases, including JSON save/load and duration-aware slot search, covering task completion and addition, chronological sorting, pet/status filtering, daily and weekly recurrence, duplicate recurrence prevention, same-time conflicts within and across pets, and daily planning within a priority-based time budget. Edge cases include empty lists, equal times, completed tasks, different dates, one-time tasks, and zero or negative time budgets.
 
 Successful test output from the development environment:
 
@@ -106,14 +106,16 @@ Successful test output from the development environment:
 platform linux -- Python 3.12.14, pytest-9.2.0, pluggy-1.7.0
 rootdir: /workspace/scratch/609a7b568a6c
 plugins: anyio-4.16.0
-collected 14 items
+collected 18 items
 
-tests/test_pawpal.py ..............                                      [100%]
+tests/test_pawpal.py ..................                                  [100%]
 
-============================== 14 passed in 0.02s ==============================
+18 passed, 1 warning in 0.12s
+
+The warning is a deprecation notice from the environment's anyio pytest plugin.
 ```
 
-**Confidence Level: ★★★★☆ (4/5).** All 14 tests pass for the covered backend behaviors. This supports confidence in the core scheduling logic, but does not prove every scenario is handled. These tests do not cover Streamlit interactions, duration-overlap detection, or saving data between application runs.
+**Confidence Level: ★★★★☆ (4/5).** All 18 tests pass for the covered backend behaviors. This supports confidence in the core scheduling logic, but does not prove every scenario is handled. These tests do not cover Streamlit interactions, duration-overlap detection, or every persistence failure scenario.
 
 ## 📐 Smarter Scheduling
 
@@ -193,8 +195,25 @@ WARNING: Conflict on 2026-11-01 at 19:00: Biscuit feeding and Luna feeding.
 
 ## Current Limitations
 
-- Session state retains data during interactions in the active session. Data is not saved between application runs.
+- Persistence uses one local `data.json` file for this app installation; it is not a multi-user database. Click **Save data** after changes.
 - Conflict detection checks equal start times, not duration overlaps, and warns rather than resolving conflicts.
 - The time budget is a total number of minutes; it does not model available time slots or travel time.
 - Task editing is available through the backend's `Task.update_details()` method; the current UI supports adding and completing tasks.
 - Daily planning uses dates, task priorities, and a time budget. Additional owner preferences are not implemented.
+
+
+## Optional Extensions Implemented
+
+### Next Available Slot
+
+`Scheduler.next_available_slot(day, duration_minutes, start_time="08:00", end_time="20:00")` finds the earliest gap that fits a task across all pets. It sorts pending-task intervals and advances past overlapping activities. Unlike the basic exact-time conflict warning, this algorithm considers duration overlaps, including activities extending from the previous day. Completed tasks do not block slots. It returns an `HH:MM` string or `None` when no slot fits; invalid durations or reversed windows raise `ValueError`. The search window stays within one day. Runtime is O(n log n) for n relevant intervals.
+
+In the UI, open **Find Next Available Slot**, choose a date, duration, and start/end window, then click **Find available slot**. The result is a suggestion: enter that time in Schedule a Task to create the task.
+
+### JSON Persistence
+
+`Owner.save_to_json(path="data.json")` saves the owner name, pet names/species, and every task field, including completion and recurrence. It uses custom dictionary conversion with Python's built-in `json` module; dates become ISO strings. `Owner.load_from_json(path="data.json")` reconstructs Owner, Pet, Task, and Python date objects. No serialization dependency is required.
+
+The UI loads `data.json` beside `app.py` when a session starts. If no file exists, it starts with an empty owner. Click **Save data** after adding pets/tasks, changing the owner name, or completing tasks. Restart the app or open a new session to restore the saved state. Unsaved changes are not restored. Invalid files produce an error instead of being silently overwritten. Saving writes a temporary file and then replaces the destination so an interrupted write is less likely to damage the last saved data. Keep data.json local if it contains personal information.
+
+Files changed: `pawpal_system.py` (both algorithms), `app.py` (slot search and save/load), `tests/test_pawpal.py` (extension tests), `diagrams/uml_final.mmd` (new methods), `README.md` (usage), and `ai_interactions.md` (Agent Workflow). Existing CLI behavior remains available through `python main.py`.

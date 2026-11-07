@@ -1,6 +1,8 @@
 """Core classes for the PawPal+ logic layer."""
 
-from dataclasses import dataclass, field, replace
+from dataclasses import asdict, dataclass, field, replace
+import json
+from pathlib import Path
 from datetime import date, datetime, timedelta
 
 
@@ -84,6 +86,52 @@ class Owner:
         return [task for pet in self.pets for task in pet.tasks]
 
 
+    def save_to_json(self, path: str | Path = "data.json") -> None:
+        """Save owner, pets, and tasks as JSON using ISO date strings."""
+        data = {"name": self.name, "pets": []}
+        for pet in self.pets:
+            tasks = []
+            for task in pet.tasks:
+                record = asdict(task)
+                record["due_date"] = task.due_date.isoformat()
+                tasks.append(record)
+            data["pets"].append({"name": pet.name, "species": pet.species, "tasks": tasks})
+        destination = Path(path)
+        temporary = destination.with_suffix(destination.suffix + ".tmp")
+        temporary.write_text(json.dumps(data, indent=2), encoding="utf-8")
+        temporary.replace(destination)
+
+    @classmethod
+    def load_from_json(cls, path: str | Path = "data.json") -> "Owner":
+        """Restore an owner and nested objects, rejecting malformed data."""
+        try:
+            data = json.loads(Path(path).read_text(encoding="utf-8"))
+            if not isinstance(data["name"], str) or not isinstance(data["pets"], list):
+                raise ValueError("Invalid owner fields.")
+            owner = cls(data["name"])
+            for record in data["pets"]:
+                if not isinstance(record["name"], str) or not isinstance(record["species"], str):
+                    raise ValueError("Invalid pet fields.")
+                if not isinstance(record["tasks"], list):
+                    raise ValueError("Invalid task list.")
+                pet = Pet(record["name"], record["species"])
+                for saved in record["tasks"]:
+                    fields = dict(saved)
+                    fields["due_date"] = date.fromisoformat(fields["due_date"])
+                    if type(fields["completed"]) is not bool:
+                        raise ValueError("Invalid completion status.")
+                    if type(fields["duration_minutes"]) is not int:
+                        raise ValueError("Invalid duration.")
+                    if not all(isinstance(fields[key], str) for key in
+                               ("description", "time", "priority", "frequency")):
+                        raise ValueError("Invalid task text fields.")
+                    pet.add_task(Task(**fields))
+                owner.add_pet(pet)
+            return owner
+        except (ValueError, KeyError, TypeError, AttributeError) as exc:
+            raise ValueError("Cannot load data: invalid PawPal JSON file.") from exc
+
+
 class Scheduler:
     """Organize and manage care tasks for an owner's pets."""
 
@@ -162,3 +210,33 @@ class Scheduler:
                 completed=False,
             )
             pet.add_task(next_task)
+
+
+    def next_available_slot(
+        self, day: date, duration_minutes: int,
+        start_time: str = "08:00", end_time: str = "20:00",
+    ) -> str | None:
+        """Find the earliest duration-sized gap across all pets in a day window."""
+        if duration_minutes <= 0:
+            raise ValueError("Duration must be positive.")
+        start = datetime.combine(day, datetime.strptime(start_time, "%H:%M").time())
+        end = datetime.combine(day, datetime.strptime(end_time, "%H:%M").time())
+        if end <= start:
+            raise ValueError("End time must be later than start time.")
+        length = timedelta(minutes=duration_minutes)
+        intervals = []
+        for task in self.owner.get_all_tasks():
+            if task.completed:
+                continue
+            task_start = datetime.combine(task.due_date, datetime.strptime(task.time, "%H:%M").time())
+            task_end = task_start + timedelta(minutes=task.duration_minutes)
+            if task_start < end and task_end > start:
+                intervals.append((task_start, task_end))
+        candidate = start
+        for busy_start, busy_end in sorted(intervals):
+            if candidate + length <= busy_start:
+                return candidate.strftime("%H:%M")
+            candidate = max(candidate, busy_end)
+        if candidate + length <= end:
+            return candidate.strftime("%H:%M")
+        return None

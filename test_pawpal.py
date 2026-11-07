@@ -193,3 +193,62 @@ def test_daily_plan_handles_empty_zero_and_negative_budget():
     assert scheduler.generate_daily_plan(date.today(), 0) == []
     with pytest.raises(ValueError, match="Available minutes"):
         scheduler.generate_daily_plan(date.today(), -1)
+
+
+def test_json_round_trip(tmp_path):
+    """Saving and loading restores all fields and independent task objects."""
+    owner = Owner("Alex")
+    pet = Pet("Biscuit", "dog")
+    owner.add_pet(pet)
+    pet.add_task(Task("Walk", date(2026, 12, 31), "09:00", 30, "high", "weekly", True))
+    owner.add_pet(Pet("Luna", "cat"))
+    path = tmp_path / "data.json"
+    owner.save_to_json(path)
+    restored = Owner.load_from_json(path)
+    assert restored.name == owner.name
+    assert restored.pets == owner.pets
+    assert restored.pets[0].tasks[0] is not pet.tasks[0]
+    assert isinstance(restored.pets[0].tasks[0].due_date, date)
+    restored.name = "Updated"
+    restored.save_to_json(path)
+    assert Owner.load_from_json(path).name == "Updated"
+
+
+def test_invalid_json_is_rejected(tmp_path):
+    path = tmp_path / "data.json"
+    path.write_text('{"name": "Alex", "pets": [{}]}')
+    with pytest.raises(ValueError, match="invalid PawPal"):
+        Owner.load_from_json(path)
+    path.write_text('broken json')
+    with pytest.raises(ValueError):
+        Owner.load_from_json(path)
+
+
+def test_next_slot_merges_overlaps_across_pets():
+    owner = Owner("Alex")
+    a, b = Pet("Biscuit", "dog"), Pet("Luna", "cat")
+    owner.add_pet(a)
+    owner.add_pet(b)
+    day = date(2026, 11, 6)
+    a.add_task(Task("Walk", day, "08:00", 60, "high"))
+    b.add_task(Task("Care", day, "08:30", 60, "high"))
+    b.add_task(Task("Done", day, "09:30", 30, "high", completed=True))
+    scheduler = Scheduler(owner)
+    assert scheduler.next_available_slot(day, 30, "08:00", "10:00") == "09:30"
+    assert scheduler.next_available_slot(day, 31, "08:00", "10:00") is None
+    assert scheduler.next_available_slot(day + timedelta(days=1), 30) == "08:00"
+
+
+def test_next_slot_handles_previous_day_and_exact_gap():
+    owner = Owner("Alex")
+    pet = Pet("Biscuit", "dog")
+    owner.add_pet(pet)
+    day = date(2026, 11, 6)
+    pet.add_task(Task("Late care", day - timedelta(days=1), "23:30", 90, "high"))
+    pet.add_task(Task("Early care", day, "01:30", 30, "high"))
+    scheduler = Scheduler(owner)
+    assert scheduler.next_available_slot(day, 30, "00:00", "02:00") == "01:00"
+    with pytest.raises(ValueError):
+        scheduler.next_available_slot(day, 0)
+    with pytest.raises(ValueError):
+        scheduler.next_available_slot(day, 30, "20:00", "08:00")
